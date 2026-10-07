@@ -56,10 +56,39 @@ jobs:
           ls -lh ../keys.tar.gz
           echo "=============================="
           ls -l
+          
+      - name: Convert to base64
+        id: base64
+        run: |
+          # 转成单行 base64（方便放到 GitHub Secret）
+          base64 -w0 keys.tar.gz > keys_base64.txt
+          
+          echo "文件大小："
+          ls -lh keys.tar.gz keys_base64.txt
+          
+          # 把 base64 内容写入输出（方便后续步骤）
+          echo "BASE64_LENGTH=$(wc -c < keys_base64.txt)" >> $GITHUB_OUTPUT
 
       - name: Upload keys as Artifact
         uses: actions/upload-artifact@v7
         with:
           name: android-signing-keys
-          path: keys.tar.gz
-          retention-days: 5
+          path: |
+            keys.tar.gz
+            keys_base64.txt
+          retention-days: 7
+
+      - name: Show base64 (方便复制)
+        run: |
+          echo "========================================================"
+          echo "下面是 keys.tar.gz 的 base64 内容"
+          echo "你可以："
+          echo "1. 直接复制全部内容，存到 GitHub Secret（名称建议：KEYS_BASE64）"
+          echo "2. 或者下载 Artifact 里的 keys_base64.txt 文件"
+          echo "========================================================"
+          echo ""
+          cat keys_base64.txt
+          echo ""
+          echo "========================================================"
+          echo "复制完成后，请尽快删除此日志或设置仓库为私有，保护密钥安全！"
+          echo "========================================================"
