@@ -1,0 +1,45 @@
+name: Generate Android Signing Keys
+
+on:
+  workflow_dispatch:
+
+jobs:
+  generate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y openssl
+
+      - name: Download make_key
+        run: |
+          curl -sL https://raw.githubusercontent.com/aosp-mirror/platform_development/master/tools/make_key -o make_key
+          chmod +x make_key
+
+      - name: Generate keys
+        run: |
+          mkdir -p android-certs
+          cd android-certs
+          
+          subject='/C=CN/ST=Anhui/L=Hefei/O=EvolutionX-Myron/OU=Android/CN=Evolution-X/emailAddress=xiechangan123@gmail.com'
+          
+          for x in releasekey platform shared media networkstack bluetooth sdk_sandbox nfc; do
+            ../make_key $x "$subject" <<< $'\n\n'   # 两次回车，表示无密码
+          done
+          
+          ln -sf releasekey.pk8 testkey.pk8
+          ln -sf releasekey.x509.pem testkey.x509.pem
+          
+          tar -czf ../keys.tar.gz *.pk8 *.x509.pem
+          ls -lh ../keys.tar.gz
+
+      - name: Upload keys as Artifact
+        uses: actions/upload-artifact@v7
+        with:
+          name: android-signing-keys
+          path: keys.tar.gz
+          retention-days: 5
