@@ -27,15 +27,35 @@ jobs:
           
           subject='/C=CN/ST=Anhui/L=Hefei/O=EvolutionX-Myron/OU=Android/CN=Evolution-X/emailAddress=xiechangan123@gmail.com'
           
-          for x in releasekey platform shared media networkstack bluetooth sdk_sandbox nfc; do
-            ../make_key $x "$subject" <<< $'\n\n'   # 两次回车，表示无密码
+          for name in releasekey platform shared media networkstack bluetooth sdk_sandbox nfc; do
+            echo "Generating $name ..."
+            
+            # 生成 RSA 私钥
+            openssl genrsa -out ${name}.pem 2048 2>/dev/null
+            
+            # 生成证书
+            openssl req -new -x509 -key ${name}.pem -out ${name}.x509.pem \
+              -days 10000 -subj "$subject" 2>/dev/null
+            
+            # 转成 Android 需要的 PKCS#8 格式（无密码）
+            openssl pkcs8 -in ${name}.pem -topk8 -outform DER -out ${name}.pk8 -nocrypt 2>/dev/null
+            
+            # 删除临时 pem
+            rm -f ${name}.pem
+            
+            echo "✓ $name done"
           done
           
+          # 兼容软链接
           ln -sf releasekey.pk8 testkey.pk8
           ln -sf releasekey.x509.pem testkey.x509.pem
           
+          # 打包
           tar -czf ../keys.tar.gz *.pk8 *.x509.pem
+          echo "=============================="
           ls -lh ../keys.tar.gz
+          echo "=============================="
+          ls -l
 
       - name: Upload keys as Artifact
         uses: actions/upload-artifact@v7
