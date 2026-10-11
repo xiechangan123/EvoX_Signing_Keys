@@ -15,11 +15,6 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y openssl
 
-      - name: Download make_key
-        run: |
-          curl -sL https://raw.githubusercontent.com/aosp-mirror/platform_development/master/tools/make_key -o make_key
-          chmod +x make_key
-
       - name: Generate keys
         run: |
           mkdir -p android-certs
@@ -33,7 +28,7 @@ jobs:
             # 生成 RSA 私钥
             openssl genrsa -out ${name}.pem 2048 2>/dev/null
             
-            # 生成证书
+            # 生成证书（有效期约 27 年）
             openssl req -new -x509 -key ${name}.pem -out ${name}.x509.pem \
               -days 10000 -subj "$subject" 2>/dev/null
             
@@ -46,7 +41,7 @@ jobs:
             echo "✓ $name done"
           done
           
-          # 兼容软链接
+          # 兼容软链接（很多 ROM 会用到 testkey）
           ln -sf releasekey.pk8 testkey.pk8
           ln -sf releasekey.x509.pem testkey.x509.pem
           
@@ -78,7 +73,7 @@ jobs:
             keys_base64.txt
           retention-days: 7
 
-      - name: Show base64 (方便复制)
+      - name: Show base64 (方便复制到 Secret / Gist)
         run: |
           echo "========================================================"
           echo "下面是 keys.tar.gz 的 base64 内容"
